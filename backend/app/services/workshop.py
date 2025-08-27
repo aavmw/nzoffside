@@ -114,7 +114,7 @@ class OperationManager:
         """Save operation log to database"""
 
         query = '''
-                INSERT INTO "workshop".operation_log (
+                INSERT INTO operation_log (
                     message_dttm,
                     message
                 )
@@ -154,7 +154,7 @@ class OperationManager:
             return       
 
         query = '''
-                UPDATE "workshop".job_cards
+                UPDATE job_cards
                 SET operations = jsonb_set(
                     operations::jsonb,                     -- cast to jsonb
                     ARRAY[%s],
@@ -181,7 +181,7 @@ class OperationManager:
 
     def _get_operations_data(self):
 
-        query = 'SELECT * FROM "workshop".job_cards WHERE is_active = True ORDER BY project, name'
+        query = 'SELECT * FROM job_cards WHERE is_active = True ORDER BY project, name'
 
         with DbManager() as db:
             job_cards_table, description = db.execute_query(query, fetch_results=True)
@@ -241,7 +241,7 @@ class OperationManager:
     
     def get_job_card_data(self, drive_id):
 
-        query = 'SELECT * FROM "workshop".job_cards WHERE drive_id = %s'
+        query = 'SELECT * FROM job_cards WHERE drive_id = %s'
 
         with DbManager() as db:
             job_card, description = db.execute_query(query, (drive_id, ), True)
@@ -357,7 +357,7 @@ class JobCard:
         placeholders = ','.join(['%s'] * len(params))
 
         update_query = f'''
-                        INSERT INTO "workshop".job_cards (
+                        INSERT INTO job_cards (
                             drive_id, 
                             name, 
                             creation_dttm, 
@@ -425,7 +425,7 @@ class JobCard:
         keep DataBase stored values.
         '''
 
-        db_operations_query = 'SELECT operations FROM "workshop".job_cards WHERE drive_id = %s'
+        db_operations_query = 'SELECT operations FROM job_cards WHERE drive_id = %s'
         
         with DbManager() as db:
             db_operations, _ = db.execute_query(db_operations_query, (self.drive_id,), True)
@@ -466,7 +466,7 @@ def update_db_job_cards_info():
 
     in_work_folders = []
     job_cards_list = []
-    current_db_data_query = 'SELECT drive_id, modified_dttm, is_active FROM "workshop".job_cards'
+    current_db_data_query = 'SELECT drive_id, modified_dttm, is_active FROM job_cards'
 
     projects_folders = _google_api.get_folder_files_info(f"'{PROJECTS_FOLDER}' in parents and trashed = false")
 
@@ -516,7 +516,7 @@ def update_db_job_cards_info():
     if to_set_inactive:
         placeholders = ','.join(['%s'] * len(to_set_inactive))
         inactive_query = f'''
-            UPDATE "workshop".job_cards
+            UPDATE job_cards
             SET is_active = False
             WHERE drive_id IN ({placeholders})
         '''
@@ -783,7 +783,7 @@ def update_projects_google_sheet():
     )
 
     with DbManager() as db:
-        projects, _ = db.execute_query('SELECT DISTINCT project FROM "workshop".job_cards WHERE is_active = True ORDER BY project', fetch_results=True)
+        projects, _ = db.execute_query('SELECT DISTINCT project FROM job_cards WHERE is_active = True ORDER BY project', fetch_results=True)
 
     
     for row in projects:
