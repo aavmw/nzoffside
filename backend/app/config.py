@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         env_file=".env",            # used if present; real env vars still take precedence
         env_file_encoding="utf-8",
         case_sensitive=True,
+        extra="ignore",
     )
 
     # --- Core ---

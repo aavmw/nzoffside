@@ -15,4 +15,13 @@ venv/
 
 # Docker stuff
 pg_data/
+
+# Ignore everything in backups/
+backups/*
+
+# …but keep this template
+!backups/pg_dump.sh.example
+
+# optional: keep an empty marker so folder exists
+!backups/.gitkeep
 '@ | Out-File -Encoding utf8 .gitignore
