@@ -1,0 +1,11 @@
+**/__pycache__/
+**/*.py[cod]
+*.log
+.git
+.gitignore
+.venv
+venv
+.env
+.env.*
+secrets/*
+tests/

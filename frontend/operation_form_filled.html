@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body { padding: 20px; font-family: Arial; max-width: 500px; margin: 0 auto; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; }
+    .value-display { 
+      padding: 8px; 
+      background-color: #f5f5f5; 
+      border: 1px solid #ddd; 
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    input[type="datetime-local"] { 
+      padding: 8px; 
+      width: 100%; 
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden field for job card code -->
+  <input type="hidden" id="jobCardCode">
+
+  <div class="form-group">
+    <label>Project:</label>
+    <div class="value-display" id="projectDisplay"></div>
+  </div>
+
+  <div class="form-group">
+    <label>Job Card:</label>
+    <div class="value-display" id="jobCardNameDisplay"></div>
+  </div>
+
+  <div class="form-group">
+    <label>Operation:</label>
+    <div class="value-display" id="operationDisplay"></div>
+  </div>
+
+  <div class="form-group">
+    <label>Start Date/Time:</label>
+    <input type="datetime-local" id="startDateTime" disabled>
+  </div>
+
+  <div class="form-group">
+    <label>End Date/Time:</label>
+    <input type="datetime-local" id="endDateTime" disabled>
+  </div>
+
+  <button id="submitBtn" onclick="submitForm()" style="width: 100%; padding: 10px 15px; background-color: #cccccc; color: white; border: none; border-radius: 4px; cursor: not-allowed;" disabled>
+  Save
+  </button>
+  <div id="formStatus" style="margin-top: 10px; color: #d00; font-weight: bold;"></div>
+
+  <script>
+
+    let userEmail = '';
+
+    $(document).ready(function() {
+      // Get pre-filled data from server
+      google.script.run.withSuccessHandler(function(data) {
+        if (data) {
+          populateForm(data);
+        }
+      }).getFormData();
+
+      google.script.run.withSuccessHandler(function(email) {
+        userEmail = email;
+      }).getUserEmail();
+
+      $('#startDateTime, #endDateTime').on('input', validateForm);
+      validateForm();
+    });
+
+    function populateForm(data) {
+      // Set the hidden job card code
+      $('#jobCardCode').val(data.jobCardCode);
+
+      // Display the values
+      $('#projectDisplay').text(data.project);
+      $('#jobCardNameDisplay').text(data.jobCardName);
+      $('#operationDisplay').text(data.operation);
+      
+      // Set date times (formatted for datetime-local input)
+      $('#startDateTime').val(formatDateTimeForInput(data.startDateTime));
+      $('#endDateTime').val(formatDateTimeForInput(data.endDateTime));
+
+      // Enable date fields after data is loaded
+      $('#startDateTime').prop('disabled', false);
+      $('#endDateTime').prop('disabled', false);
+
+    }
+
+    function formatDateTimeForInput(dateTimeStr) {
+      if (!dateTimeStr) return '';
+      const date = new Date(dateTimeStr);
+      const pad = num => num.toString().padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function submitForm() {
+      const data = {
+        email: userEmail,
+        project: $('#projectDisplay').text(),
+        jobCardCode: $('#jobCardCode').val(),
+        jobCardName: $('#jobCardNameDisplay').text(),
+        operation: $('#operationDisplay').text(),
+        startDateTime: $('#startDateTime').val(),
+        endDateTime: $('#endDateTime').val()
+      };
+
+      // Set startDateTime = endDateTime if start is empty and end is filled
+      if (!data.startDateTime && data.endDateTime) {
+        data.startDateTime = data.endDateTime;
+        $('#startDateTime').val(data.startDateTime); // Update the input field visually
+      }
+
+      // Validate only if both are filled
+      if (data.startDateTime && data.endDateTime) {
+        if (new Date(data.startDateTime) > new Date(data.endDateTime)) {
+          alert('End time must be after start time');
+          return;
+        }
+      }
+
+      $('#submitBtn').prop('disabled', true).css({
+        backgroundColor: '#cccccc',
+        cursor: 'not-allowed'
+      });
+      $('#formStatus').text('Saving...');
+
+      google.script.run.withSuccessHandler(function () {
+        google.script.host.close();
+      }).withFailureHandler(function (error) {
+        alert('Error: ' + error.message);
+        $('#submitBtn').prop('disabled', false).css({
+          backgroundColor: '#4285f4',
+          cursor: 'pointer'
+        });
+        $('#formStatus').text('An error occurred.');
+      }).processForm(data);
+    }
+
+
+    function validateForm() {
+      const start = $('#startDateTime').val();
+      const end = $('#endDateTime').val();
+      const submitBtn = $('#submitBtn');
+      const status = $('#formStatus');
+
+      // If both are empty
+      if (!start && !end) {
+        submitBtn.prop('disabled', true);
+        submitBtn.css({
+          backgroundColor: '#cccccc',
+          cursor: 'not-allowed'
+        });
+        status.text('Please enter a Start or End Date/Time.');
+        return;
+      }
+
+      // If both are filled, validate their order
+      if (start && end && new Date(start) > new Date(end)) {
+        submitBtn.prop('disabled', true);
+        submitBtn.css({
+          backgroundColor: '#cccccc',
+          cursor: 'not-allowed'
+        });
+        status.text('End time must be after Start time.');
+        return;
+      }
+
+      // Enable the button
+      submitBtn.prop('disabled', false);
+      submitBtn.css({
+        backgroundColor: '#4285f4',
+        cursor: 'pointer'
+      });
+      status.text('');
+    }
+
+
+
+  </script>
+</body>
+</html>

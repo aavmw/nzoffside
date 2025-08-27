@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: Arial, sans-serif; padding: 14px; }
+      .row { margin-bottom: 10px; }
+      .label { font-size: 12px; color: #555; }
+      .value { font-weight: 600; }
+      textarea { width: 100%; min-height: 140px; box-sizing: border-box; }
+      .actions { margin-top: 12px; display: flex; gap: 8px; }
+      button { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
+      .primary { background: #1a73e8; color: white; }
+      .secondary { background: #e0e0e0; }
+      .danger { background: #d93025; color: white; }
+      .hint { color: #777; font-size: 12px; margin-top: 6px; }
+      .muted { color: #777; font-size: 12px; }
+      .spinner { font-size: 12px; color: #777; }
+    </style>
+  </head>
+  <body>
+    <div class="row">
+      <div class="label">Operation</div>
+      <div class="value" id="op">(loading…)</div>
+    </div>
+    <div class="row">
+      <div class="label">Job Card</div>
+      <div class="value" id="jc">(loading…)</div>
+    </div>
+
+    <div class="row">
+      <div class="label">Comment</div>
+      <textarea id="comment" placeholder="Type your comment…" disabled></textarea>
+      <div class="hint">The app will format as “YYYY-MM-DDTHH:MM user: message”.</div>
+      <div class="spinner" id="loading">Fetching current comment…</div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="saveBtn" disabled>Save</button>
+      <button class="secondary" onclick="google.script.host.close()">Cancel</button>
+      <button class="danger" id="deleteBtn" style="display:none">Delete</button>
+    </div>
+
+    <div class="muted" id="status"></div>
+
+    <script>
+      const opEl = document.getElementById('op');
+      const jcEl = document.getElementById('jc');
+      const ta = document.getElementById('comment');
+      const loading = document.getElementById('loading');
+      const saveBtn = document.getElementById('saveBtn');
+      const delBtn = document.getElementById('deleteBtn');
+      const statusEl = document.getElementById('status');
+
+      function extractMessage(raw) {
+        if (typeof raw !== 'string') return '';
+        // Find the first ": " that comes AFTER the last space (which separates timestamp and user)
+        const lastSpace = raw.lastIndexOf(' ');
+        const sepIdx = raw.indexOf(': ', lastSpace + 1);
+        if (sepIdx !== -1) return raw.slice(sepIdx + 2).trim();
+
+        // Fallback: try a strict pattern "YYYY-MM-DDTHH:MM user: message"
+        const m = raw.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\s+[^\s:]+:\s*(.*)$/);
+        if (m) return m[1].trim();
+
+        // If it doesn't match the expected format, just return as-is
+        return raw.trim();
+      }
+
+      // Load context & current comment
+      google.script.run.withSuccessHandler(ctx => {
+        opEl.textContent = ctx.operation || '(unknown)';
+        jcEl.textContent = ctx.jobCardName || '(unknown)';
+
+        const hasComment = typeof ctx.comment === 'string' && ctx.comment.trim().length > 0;
+        ta.value = hasComment ? extractMessage(ctx.comment) : '';
+
+        loading.style.display = 'none';
+        ta.disabled = false;
+        saveBtn.disabled = false;           // enable Save only after load
+        deleteBtn.style.display = hasComment ? '' : 'none';  // show/hide Delete
+      }).withFailureHandler(err => {
+        loading.textContent = 'Failed to load context.';
+      }).getCommentContext();
+
+
+      // Save
+      saveBtn.addEventListener('click', () => {
+        statusEl.textContent = '';
+        saveBtn.disabled = true; delBtn.disabled = true;
+
+        const text = ta.value;
+        google.script.run
+          .withSuccessHandler(res => {
+            statusEl.textContent = 'Saved.';
+            google.script.host.close();
+          })
+          .withFailureHandler(err => {
+            statusEl.textContent = 'Error: ' + (err && err.message ? err.message : err);
+            saveBtn.disabled = false; delBtn.disabled = false;
+          })
+          .saveOperationComment(text);
+      });
+
+      // Delete (sets comment to null on backend)
+      delBtn.addEventListener('click', () => {
+        if (!confirm('Remove the comment for this operation?')) return;
+        statusEl.textContent = '';
+        saveBtn.disabled = true; delBtn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler(res => {
+            statusEl.textContent = 'Comment removed.';
+            google.script.host.close();
+          })
+          .withFailureHandler(err => {
+            statusEl.textContent = 'Error: ' + (err && err.message ? err.message : err);
+            saveBtn.disabled = false; delBtn.disabled = false;
+          })
+          .deleteOperationComment();
+      });
+    </script>
+  </body>
+</html>

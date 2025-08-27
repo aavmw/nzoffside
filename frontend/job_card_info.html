@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .field {
+      margin-bottom: 8px;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #3367d6;
+    }
+  </style>
+<script>
+  // Format ISO timestamp to "dd.mm.yyyy HH:MM"
+  function formatTimestamp(ts) {
+    if (!ts) return 'N/A';
+    const date = new Date(ts.replace(' ', 'T'));
+    const pad = n => n.toString().padStart(2, '0');
+    return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  // Calculate duration in hh:mm
+  function calculateDuration(start, end) {
+    if (!start || !end) return 'N/A';
+    const startDate = new Date(start.replace(' ', 'T'));
+    const endDate = new Date(end.replace(' ', 'T'));
+    const diffMs = endDate - startDate;
+    if (isNaN(diffMs) || diffMs < 0) return 'N/A';
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    return `${hours}h ${minutes}m`;
+  }
+
+  function renderData() {
+    const data = <?!= JSON.stringify(data) ?>;
+
+    // Fill static fields
+    const fields = [
+      ['Name', data.name],
+      ['Project', data.project],
+      ['Part Number', data.part_number],
+      ['Serial Number', data.serial_number],
+      ['Created', formatTimestamp(data.creation_dttm)],
+      ['Modified', formatTimestamp(data.modified_dttm)],
+    ];
+
+    const infoDiv = document.getElementById('infoFields');
+    fields.forEach(([label, value]) => {
+      const div = document.createElement('div');
+      div.className = 'field';
+      div.innerHTML = `<span class="label">${label}:</span> ${value}`;
+      infoDiv.appendChild(div);
+    });
+
+    // Fill operations table
+    const tbody = document.getElementById('operationsBody');
+    for (const [op, opData] of Object.entries(data.operations)) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${op}</td>
+        <td>${formatTimestamp(opData.start_dttm)}</td>
+        <td>${formatTimestamp(opData.end_dttm)}</td>
+        <td>${calculateDuration(opData.start_dttm, opData.end_dttm)}</td>
+        <td>${opData.user || 'N/A'}</td>
+      `;
+      tbody.appendChild(row);
+    }
+  }
+</script>
+</head>
+<body onload="renderData()">
+  <div id="infoFields"></div>
+
+  <h3>Operations</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Operation</th>
+        <th>Start Time</th>
+        <th>End Time</th>
+        <th>Duration</th>
+        <th>User</th>
+      </tr>
+    </thead>
+    <tbody id="operationsBody"></tbody>
+  </table>
+
+  <button onclick="google.script.host.close()">Close</button>
+</body>
+</html>
