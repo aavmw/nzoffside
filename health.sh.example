@@ -1,0 +1,4 @@
+set -e
+curl -fsS http://localhost:8000/healthz >/dev/null \
+  && echo "OK" \
+  || (echo "DOWN" && exit 1)

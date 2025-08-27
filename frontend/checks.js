@@ -48,3 +48,30 @@ function checkPrevOperationClosed() {
 function is_operation(value) {
   return /^(?:PPK|\d{3}_[A-Z]+(?:_[A-Z]+)*)$/.test((value ?? '').toString().trim());
 }
+
+function checkHealthz() {
+
+  const base  = CFG.apiBase;
+  const key   = CFG.apiKey;
+
+  if (!base || !key) {
+    throw new Error("Missing API_BASE or API_KEY");
+  }
+
+  const url = base + '/healthz';
+
+  const resp = UrlFetchApp.fetch(url, {
+    method: 'get',
+    headers: {
+      'X-API-Key': key,
+      'ngrok-skip-browser-warning': 'true'
+    },
+    muteHttpExceptions: true
+  });
+
+  return {
+    ok: resp.getResponseCode() >= 200 && resp.getResponseCode() < 300,
+    status: resp.getResponseCode(),
+    body: resp.getContentText()
+  };
+}

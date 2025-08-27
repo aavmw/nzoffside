@@ -38,7 +38,6 @@ function BRIDGE_requireLib_() {
 function onOpen() { return BRIDGE_requireLib_().onOpen(); }
 
 /* ============== Simple one-to-one forwards ============== */
-
 function openInstruction() { return BRIDGE_requireLib_().openInstruction(); }
 function openCommentDialog() { return BRIDGE_requireLib_().openCommentDialog(); }
 function getCommentContext() { return BRIDGE_requireLib_().getCommentContext(); }

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Example backup script (copy to pg_dump.sh on server and edit if needed)
+
+set -euo pipefail
+STAMP=$(date +%F_%H-%M)
+
+# Dump DB from docker-compose service "db"
+docker compose exec -T db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  | gzip > "$HOME/backups/${POSTGRES_DB}_${STAMP}.sql.gz"
+
+# Remove dumps older than 7 days
+find "$HOME/backups" -name '*.sql.gz' -mtime +7 -delete
