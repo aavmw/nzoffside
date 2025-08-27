@@ -19,6 +19,9 @@ RUN python -m pip install --upgrade pip && pip install -r requirements.txt
 # App code
 COPY . .
 
+# Convert CRLF -> LF and make executable (handles Windows commits)
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
 # Non-root
 RUN useradd -ms /bin/bash appuser && chown -R appuser:appuser /app
 USER appuser
