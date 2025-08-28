@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Enter Man-hours</title>
+  <style>
+    body { font:14px system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:16px; }
+    label { display:block; margin-bottom:6px; font-weight:600; }
+    input { width:100px; padding:6px; }
+    .row { display:flex; gap:12px; align-items:flex-end; }
+    .error { color:#c00; font-size:12px; margin-top:10px; display:none; }
+    .status { color:#444; font-size:12px; margin-top:10px; min-height:1em; }
+    .btns { margin-top:16px; display:flex; gap:8px; }
+    button { padding:6px 12px; border:1px solid #ddd; background:#f7f7f7; cursor:pointer; }
+    .primary { background:#1a73e8; color:#fff; border-color:#1a73e8; }
+    .primary[disabled] { opacity:0.7; cursor:not-allowed; }
+    .spinner {
+      display:inline-block; width:12px; height:12px; margin-right:6px;
+      border:2px solid currentColor; border-top-color:transparent; border-radius:50%;
+      animation: spin 0.8s linear infinite; vertical-align:-1px;
+    }
+    @keyframes spin { to { transform: rotate(360deg);} }
+  </style>
+</head>
+<body>
+  <div class="row">
+    <div>
+      <label for="hours">Hours</label>
+      <input id="hours" type="number" min="0" step="1" placeholder="0" inputmode="numeric">
+    </div>
+    <div>
+      <label for="minutes">Minutes</label>
+      <input id="minutes" type="number" min="0" max="59" step="1" placeholder="00" inputmode="numeric">
+    </div>
+  </div>
+
+  <div id="err" class="error">Enter non-negative hours and minutes 0–59.</div>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+
+  <div class="btns">
+    <button id="cancelBtn" onclick="onCancel()">Cancel</button>
+    <button class="primary" id="saveBtn" onclick="submit()">Save</button>
+  </div>
+
+  <script>
+    const hEl = document.getElementById('hours');
+    const mEl = document.getElementById('minutes');
+    const err = document.getElementById('err');
+    const statusEl = document.getElementById('status');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    let isSaving = false;
+
+    function getMinutes() {
+      const h = Number(hEl.value || 0);
+      const m = Number(mEl.value || 0);
+      if (!Number.isInteger(h) || !Number.isInteger(m)) return null;
+      if (h < 0 || m < 0 || m > 59) return null;
+      return h * 60 + m;
+    }
+
+    function setSavingUI(saving) {
+      isSaving = saving;
+      saveBtn.disabled = saving;
+      cancelBtn.disabled = saving;
+      hEl.disabled = saving;
+      mEl.disabled = saving;
+      if (saving) {
+        saveBtn.textContent = 'Saving…';
+        statusEl.innerHTML = '<span class="spinner"></span>Saving…';
+      } else {
+        saveBtn.textContent = 'Save';
+        statusEl.textContent = '';
+      }
+    }
+
+    function onCancel() {
+      if (isSaving) return; // block while saving
+      google.script.host.close();
+    }
+
+    function submit() {
+      if (saveBtn.disabled) return; // guard double-clicks
+      const total = getMinutes();
+      if (total === null) {
+        err.style.display = 'block';
+        return;
+      }
+      err.style.display = 'none';
+      setSavingUI(true);
+
+      google.script.run
+        .withSuccessHandler(function () {
+          google.script.host.close();
+        })
+        .withFailureHandler(function () {
+          setSavingUI(false);
+          err.style.display = 'block';
+          err.textContent = 'Failed to submit. Try again.';
+        })
+        .durationRequestAndStore(total); // your server-side handler
+    }
+
+    // Enter key submits
+    [hEl, mEl].forEach(el => el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submit();
+      // Block Esc while saving (best-effort)
+      if (isSaving && (e.key === 'Escape' || e.key === 'Esc')) {
+        e.preventDefault(); e.stopPropagation();
+      }
+    }));
+
+    // Focus on hours
+    setTimeout(() => hEl.focus(), 0);
+  </script>
+</body>
+</html>

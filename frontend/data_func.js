@@ -52,6 +52,7 @@ function getCurrentOperationJobCardData(with_operation_dttm, col_number = null) 
   let start_dttm = null;
   let end_dttm   = null;
   let comment    = null;
+  let used_mnhrs = null;
 
   // optionally enrich with operation start/end/comment via your existing function
   if (with_operation_dttm && spreadsheetId && operationValue) {
@@ -66,6 +67,7 @@ function getCurrentOperationJobCardData(with_operation_dttm, col_number = null) 
         start_dttm = d.start_dttm ?? null;
         end_dttm   = d.end_dttm ?? null;
         comment    = (typeof d.comment === 'string' && d.comment.trim()) ? d.comment : null;
+        used_mnhrs = d.used_mnhrs ?? null;
       }
     } catch (e) {
       // swallow parsing/network errors; keep defaults
@@ -82,6 +84,7 @@ function getCurrentOperationJobCardData(with_operation_dttm, col_number = null) 
     startDateTime: start_dttm,
     endDateTime: end_dttm,
     comment: comment,
+    used_mnhrs: used_mnhrs,
   };
 }
 

@@ -23,7 +23,7 @@ function showJobCardInfo(data) {
   template.data = data;
 
   const html = template.evaluate()
-    .setWidth(800)
+    .setWidth(900)
     .setHeight(totalHeight);
 
   SpreadsheetApp.getUi().showModalDialog(html, 'Job Card Info');

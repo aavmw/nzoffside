@@ -1,15 +1,24 @@
 const CFG = {
+  // Endpoint: per-sheet override first, then library default
   get apiBase() {
-    return PropertiesService.getScriptProperties().getProperty('API_BASE_URL');
+    const doc = PropertiesService.getDocumentProperties().getProperty('API_BASE_URL');
+    const lib = PropertiesService.getScriptProperties().getProperty('API_BASE_URL');
+    return doc || lib || '';
   },
+
+  // API key: per-sheet override first, then library default
   get apiKey() {
-    return PropertiesService.getScriptProperties().getProperty('API_KEY');
+    const doc = PropertiesService.getDocumentProperties().getProperty('API_KEY');
+    const lib = PropertiesService.getScriptProperties().getProperty('API_KEY');
+    return doc || lib || '';
   },
+
   get tz() {
-    // prefer a property; fall back to the spreadsheet's timezone; then to UTC
-    return PropertiesService.getScriptProperties().getProperty('SHEETS_TZ')
-        || SpreadsheetApp.getActive().getSpreadsheetTimeZone()
-        || 'Etc/UTC';
+    return (
+      PropertiesService.getScriptProperties().getProperty('SHEETS_TZ') ||
+      SpreadsheetApp.getActive().getSpreadsheetTimeZone() ||
+      'Etc/UTC'
+    );
   },
 };
 
@@ -94,4 +103,24 @@ function getUserEmail() {
 
 function getMasterSheetCellColor(row, col) {
   return Ctx.getCellColor(row, col)
+}
+
+function setSheetApiBase(url) {
+  PropertiesService.getDocumentProperties().setProperty('API_BASE_URL', url);
+}
+function setSheetApiKey(key) {
+  PropertiesService.getDocumentProperties().setProperty('API_KEY', key);
+}
+function clearSheetOverrides() {
+  const dp = PropertiesService.getDocumentProperties();
+  dp.deleteProperty('API_BASE_URL');
+  dp.deleteProperty('API_KEY');
+}
+
+function __debugLibScriptProp(key) {
+  return PropertiesService.getScriptProperties().getProperty(key);
+}
+
+function __debugDocScriptProp(key) {
+  return PropertiesService.getDocumentProperties().getProperty(key);
 }

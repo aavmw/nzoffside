@@ -144,6 +144,7 @@ class OperationManager:
             'endDateTime': 'end_dttm',
             'email': 'user',
             'comment': 'comment',
+            'used_mnhrs' : 'used_mnhrs'
         }
         
         for src, dst in mapping.items():
@@ -391,7 +392,8 @@ class JobCard:
                 'start_dttm' : None,
                 'end_dttm' : None,
                 'comment' : None,
-                'user' : None
+                'user' : None,
+                'used_mnhrs': None
             }
             collection = False
 

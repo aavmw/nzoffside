@@ -24,4 +24,6 @@ backups/*
 
 # optional: keep an empty marker so folder exists
 !backups/.gitkeep
+
+.vscode/
 '@ | Out-File -Encoding utf8 .gitignore

@@ -50,28 +50,38 @@
   // Format ISO timestamp to "dd.mm.yyyy HH:MM"
   function formatTimestamp(ts) {
     if (!ts) return 'N/A';
-    const date = new Date(ts.replace(' ', 'T'));
+    const date = new Date(String(ts).replace(' ', 'T'));
+    if (isNaN(date)) return 'N/A';
     const pad = n => n.toString().padStart(2, '0');
     return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
-  // Calculate duration in hh:mm
+  // Ground time: difference between start and end (not man-hours)
   function calculateDuration(start, end) {
     if (!start || !end) return 'N/A';
-    const startDate = new Date(start.replace(' ', 'T'));
-    const endDate = new Date(end.replace(' ', 'T'));
+    const startDate = new Date(String(start).replace(' ', 'T'));
+    const endDate   = new Date(String(end).replace(' ', 'T'));
     const diffMs = endDate - startDate;
     if (isNaN(diffMs) || diffMs < 0) return 'N/A';
     const diffMinutes = Math.floor(diffMs / 60000);
-    const hours = Math.floor(diffMinutes / 60);
-    const minutes = diffMinutes % 60;
-    return `${hours}h ${minutes}m`;
+    const h = Math.floor(diffMinutes / 60);
+    const m = diffMinutes % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+
+  // Used man-hours: integer minutes stored per-op (e.g., used_mnhrs: 240)
+  function formatUsedMh(used_mnhrs) {
+    if (used_mnhrs === undefined || used_mnhrs === null || used_mnhrs === '') return 'N/A';
+    const mins = Math.max(0, parseInt(used_mnhrs, 10) || 0);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   }
 
   function renderData() {
     const data = <?!= JSON.stringify(data) ?>;
 
-    // Fill static fields
+    // Static fields
     const fields = [
       ['Name', data.name],
       ['Project', data.project],
@@ -80,24 +90,24 @@
       ['Created', formatTimestamp(data.creation_dttm)],
       ['Modified', formatTimestamp(data.modified_dttm)],
     ];
-
     const infoDiv = document.getElementById('infoFields');
     fields.forEach(([label, value]) => {
       const div = document.createElement('div');
       div.className = 'field';
-      div.innerHTML = `<span class="label">${label}:</span> ${value}`;
+      div.innerHTML = `<span class="label">${label}:</span> ${value ?? 'N/A'}`;
       infoDiv.appendChild(div);
     });
 
-    // Fill operations table
+    // Operations table
     const tbody = document.getElementById('operationsBody');
-    for (const [op, opData] of Object.entries(data.operations)) {
+    for (const [op, opData] of Object.entries(data.operations || {})) {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${op}</td>
         <td>${formatTimestamp(opData.start_dttm)}</td>
         <td>${formatTimestamp(opData.end_dttm)}</td>
         <td>${calculateDuration(opData.start_dttm, opData.end_dttm)}</td>
+        <td>${formatUsedMh(opData.used_mnhrs)}</td>
         <td>${opData.user || 'N/A'}</td>
       `;
       tbody.appendChild(row);
@@ -116,6 +126,7 @@
         <th>Start Time</th>
         <th>End Time</th>
         <th>Duration</th>
+        <th>Man-hours</th>
         <th>User</th>
       </tr>
     </thead>

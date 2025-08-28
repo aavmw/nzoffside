@@ -22,14 +22,28 @@ function closeOperation() {
   if (!check_input()) return showError('Wrong list or you cant perform such operation');
   if (!checkPrevOperationClosed()) return showError('Previous operations is not closed');
 
+  return openDurationDialogForClose();
+}
+
+function openDurationDialogForClose() {
+  const tpl = HtmlService.createTemplateFromFile('used_manhours'); // file below
+  const html = tpl.evaluate().setWidth(320).setHeight(200);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Enter Duration (HH:MM)');
+}
+
+function durationRequestAndStore(used_manhours) {
+  console.log(used_manhours);
   const data = getCurrentOperationJobCardData(true);
   const now = nowDateString();
+
+  const mins = Math.max(0, parseInt(used_manhours, 10) || 0);
 
   // Base payload for closing
   const payload = {
     email: data.email,
     jobCardCode: data.jobCardCode,
     operation: data.operation,
+    used_mnhrs: mins,
     endDateTime: now,
   };
 
@@ -38,6 +52,7 @@ function closeOperation() {
   }
 
   return sendToDbAndColorAfterJobEdit(payload);
+
 }
 
 

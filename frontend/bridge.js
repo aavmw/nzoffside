@@ -53,3 +53,4 @@ function getOperationInWork() { return BRIDGE_requireLib_().getOperationInWork()
 function closeOperation() {return BRIDGE_requireLib_().closeOperation(); }
 function dropOperationTimes() { return BRIDGE_requireLib_().dropOperationTimes(); }
 function openEditJobCardForm() { return BRIDGE_requireLib_().openEditJobCardForm(); }
+function durationRequestAndStore(used_manhours) { return BRIDGE_requireLib_().durationRequestAndStore(used_manhours); }
