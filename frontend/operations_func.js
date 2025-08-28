@@ -28,7 +28,7 @@ function closeOperation() {
 function openDurationDialogForClose() {
   const tpl = HtmlService.createTemplateFromFile('used_manhours'); // file below
   const html = tpl.evaluate().setWidth(320).setHeight(200);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Enter Duration (HH:MM)');
+  SpreadsheetApp.getUi().showModalDialog(html, 'Enter used MHs (HH:MM)');
 }
 
 function durationRequestAndStore(used_manhours) {
@@ -89,8 +89,9 @@ function dropOperationTimes() {
           email: null,
           jobCardCode: data.jobCardCode,
           operation: data.operation,
-          startDateTime : data.startDateTime,
-          endDateTime : data.endDateTime
+          startDateTime : null,
+          endDateTime : null,
+          used_mnhrs : null
     };
 
     sendToDbAndColorAfterJobEdit(payload);

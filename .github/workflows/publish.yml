@@ -130,17 +130,7 @@ jobs:
             # Pull images
             docker compose pull --quiet
 
-            # Ensure DB is up (and healthy) for migrations
-            docker compose up -d db
-
-            # Run Alembic migrations inside the new image
-            # (Assumes alembic is installed in the image and your env vars are correct)
-            docker compose run --rm -T --entrypoint "" \
-              -e SQLALCHEMY_SILENCE_UBER_WARNING=1 \
-              api alembic upgrade head
-
-            # Start/refresh API
-            docker compose up -d api
+            docker compose up -d --no-build --wait --remove-orphans
 
             # Optional cleanup
             docker image prune -f

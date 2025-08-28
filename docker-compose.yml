@@ -57,5 +57,33 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
 
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Prague
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_DIR: /var/backups/postgres
+      RETENTION_DAYS: 7
+    volumes:
+      - ./pg_backups:/var/backups/postgres
+      - ./scripts/pg_backup.sh:/usr/local/bin/pg_backup.sh:ro
+      - ./cron/backup.cron:/etc/crontabs/root:ro
+    command: ["crond","-f","-l","2"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$(find /var/backups/postgres -name '*.dump' -mtime -1)\" || exit 1"]
+      interval: 5m
+      timeout: 5s
+      retries: 5
+
 volumes:
   pg_data:
