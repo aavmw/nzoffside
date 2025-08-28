@@ -21,7 +21,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-      - backend/.env.prod
     environment:
       DATABASE_HOST: db
       DATABASE_PORT: 5432
