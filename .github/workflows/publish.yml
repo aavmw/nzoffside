@@ -108,6 +108,8 @@ jobs:
           host:     ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key:      ${{ secrets.SSH_KEY }}
+          request_pty: false
+          command_timeout: 15m
           script: |
             set -euo pipefail
             DEPLOY_DIR="${HOME}/apps/nzoffside"
@@ -126,14 +128,14 @@ jobs:
             echo "API_IMAGE_TAG=$TAG" > .env.api_tag
 
             # Pull images
-            docker compose pull
+            docker compose pull --quiet
 
             # Ensure DB is up (and healthy) for migrations
             docker compose up -d db
 
             # Run Alembic migrations inside the new image
             # (Assumes alembic is installed in the image and your env vars are correct)
-            docker compose run --rm \
+            docker compose run --rm -T --entrypoint "" \
               -e SQLALCHEMY_SILENCE_UBER_WARNING=1 \
               api alembic upgrade head
 
