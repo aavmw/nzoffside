@@ -5,12 +5,27 @@ from sqlalchemy import pool
 
 from alembic import context
 
-import os
+import sys, os
+from pathlib import Path
+
+# Paths
+BACKEND_DIR = Path(__file__).resolve().parents[1]      # .../nzoffside/backend
+ROOT_DIR    = BACKEND_DIR.parent                       # .../nzoffside
+
+# Ensure 'backend' is importable so "from app..." works
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+# Load env from repo root: prefer .env, fallback to .env.dev
 from dotenv import load_dotenv
+env_file = ROOT_DIR / ".env"
+if not env_file.exists():
+    env_file = BACKEND_DIR / ".env.dev"
+if env_file.exists():
+    load_dotenv(env_file)
+
+# Now your models import will resolve
 from app.models import Base
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # .../backend/alembic
-DOTENV = os.path.join(os.path.dirname(BASE_DIR), ".env.dev")  # .../backend/.env.dev
-load_dotenv(DOTENV)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

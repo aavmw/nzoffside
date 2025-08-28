@@ -9,25 +9,6 @@ app = Flask(__name__)
 def ping():
     return jsonify(ok=True, msg="pong")
 
-# @api_bp.post("/acdc")
-# def execute_code():
-#     try:
-#         acdc.getFull()
-#         return jsonify({"status": "success"}), 200
-#     except Exception as e:
-#         app.logger.error("An error occurred", exc_info=True)
-#         return jsonify({"status": "error", "message": str(e)}), 500 
-
-# @app.route("/download_toptenalts")
-# def download_top_ten_alts():
-#     file_path = tta.top_ten_alts()
-#     return send_file(
-#         file_path,
-#         as_attachment=True,
-#         download_name="toptenalts.xlsx",
-#         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-#     )
-
 @api_bp.post("/wsop")
 def workshop_operations():
     try:
