@@ -90,9 +90,16 @@ jobs:
 
       # Only run deploy if all three secrets are present
       - name: Check deploy secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY:  ${{ secrets.SSH_KEY }}
         run: |
-          for v in SSH_HOST SSH_USER SSH_KEY; do
-            test -n "${{ secrets[v] }}" || { echo "$v is missing; skipping deploy." ; exit 78; }
+          for var in SSH_HOST SSH_USER SSH_KEY; do
+            if [ -z "${!var}" ]; then
+              echo "$var is missing; skipping deploy."
+              exit 78  # special code to mark step as neutral in some runners
+            fi
           done
 
       - name: SSH deploy (compose pull & up)
