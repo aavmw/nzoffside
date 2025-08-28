@@ -1,28 +1,87 @@
-name: Build and Publish
+name: Build & Publish Docker image (GHCR) + optional Deploy
 
 on:
   push:
-    branches: [ main ]        # build on main branch
-  workflow_dispatch: {}       # manual trigger
+    branches: [ main ]      # build on main pushes
+    tags:     [ 'v*' ]      # also build when you push a tag like v1.2.3
+  workflow_dispatch:        # allow manual runs
+
+permissions:
+  contents: read
+  packages: write           # <-- required to push to GHCR
+
+env:
+  IMAGE_NAME: nzoffside-api
+  IMAGE_REGISTRY: ghcr.io
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Compute tags
+        id: meta
+        run: |
+          echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "ref_tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push API image
+      - name: Build & push image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/nzoffside-api:2025-08-28
+          tags: |
+            ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.sha }}
+            ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.date }}
+            ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.ref_tag || '' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  deploy:
+    # Deploy only on tags or when manually triggered
+    if: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Figure out tag to deploy
+        id: pick
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          fi
+
+      - name: SSH into server and pull new image
+        if: ${{ secrets.SSH_HOST && secrets.SSH_USER && secrets.SSH_KEY }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key:      ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ${DEPLOY_DIR:-/opt/nzoffside}
+            # update image tag in compose (if you keep the tag inline)
+            sed -i "s#^\(\s*image:\s*${{ env.IMAGE_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:\).*#\1${{ steps.pick.outputs.tag }}#" docker-compose.yml
+            docker login ${{ env.IMAGE_REGISTRY }} -u '${{ github.actor }}' -p '${{ secrets.GITHUB_TOKEN }}'
+            docker compose pull api
+            docker compose up -d api
+            docker image prune -f
