@@ -12,13 +12,13 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    # Remove public port in prod unless you really need to reach DB from outside
     ports:
-      - "5432:5432"   # optional for local access
+      - "5432:5432"
 
   api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/aavmw/nzoffside-api:${API_IMAGE_TAG:-latest}   # <— PREBUILT image from Docker Hub
+    restart: unless-stopped
     env_file:
       - .env
       - backend/.env.prod
@@ -29,14 +29,34 @@ services:
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_NAME: ${POSTGRES_DB}
       APP_ENV: production
+      TZ: Europe/Prague
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
+    # do NOT publish the API port publicly; only expose inside the network
+    expose:
+      - "8000"
     volumes:
       - ./backend/secrets:/app/secrets:ro
+      # If you keep a service-account file:
+      # - /opt/nzoffside/secrets/google_sa.json:/app/google_sa.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+
+  nginx:
+    image: nginx:1.27
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      # If/when you add TLS certs, also map 443:
+      # - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
   pg_data:

@@ -1,7 +1,5 @@
 # app.py
-from flask import Flask, request, jsonify, send_file, render_template_string
-from ..services import getAcDcRowsAndColors as acdc
-from ..services import toptenalts as tta
+from flask import Flask, request, jsonify
 from ..services import workshop as ws
 from . import api_bp
 

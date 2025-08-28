@@ -88,3 +88,35 @@ jobs:
             echo "tag=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
           fi
 
+      # Only run deploy if all three secrets are present
+      - name: Check deploy secrets
+        run: |
+          for v in SSH_HOST SSH_USER SSH_KEY; do
+            test -n "${{ secrets[v] }}" || { echo "$v is missing; skipping deploy." ; exit 78; }
+          done
+
+      - name: SSH deploy (compose pull & up)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key:      ${{ secrets.SSH_KEY }}
+          script: |
+            set -euo pipefail
+            DEPLOY_DIR="${HOME}/apps/nzoffside"
+            IMAGE="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.IMAGE_NAME }}"
+            TAG="${{ steps.pick.outputs.tag }}"
+
+            cd "$DEPLOY_DIR"
+
+            # login to GHCR on the remote using the same PAT
+            echo "${{ secrets.GHCR_PAT }}" | docker login ${{ env.IMAGE_REGISTRY }} -u "${{ env.IMAGE_OWNER }}" --password-stdin
+
+            # If your docker-compose.yml uses env var for tag, e.g.:
+            #   image: ghcr.io/aavmw/nzoffside-api:${API_IMAGE_TAG:-latest}
+            # then:
+            echo "API_IMAGE_TAG=$TAG" > .env.api_tag
+
+            docker compose pull api
+            docker compose up -d api
+            docker image prune -f
