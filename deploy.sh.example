@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-# Example deploy script (copy to deploy.sh on server)
-
-set -euo pipefail
-git pull
-docker compose pull || true
-docker compose up -d --build api
-docker compose ps

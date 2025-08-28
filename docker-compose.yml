@@ -37,7 +37,7 @@ services:
     expose:
       - "8000"
     volumes:
-      - ./backend/secrets:/app/secrets:ro
+      - ./secrets:/app/secrets:ro
       # If you keep a service-account file:
       # - /opt/nzoffside/secrets/google_sa.json:/app/google_sa.json:ro
     healthcheck:

@@ -14,3 +14,4 @@ alembic/versions/*.pyc
 backups/
 secrets/*.example
 .vscode
+nginx.conf

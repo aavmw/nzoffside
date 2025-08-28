@@ -26,4 +26,5 @@ backups/*
 !backups/.gitkeep
 
 .vscode/
+nginx.conf
 '@ | Out-File -Encoding utf8 .gitignore
